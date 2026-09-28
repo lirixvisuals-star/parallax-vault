@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parallax Server Status & Discovery</title>
+  <style>
+    :root {
+      --bg-color: #0e1621;
+      --card-bg: #17212b;
+      --accent: #5288c1;
+      --accent-hover: #4575a8;
+      --text-main: #f5f5f5;
+      --text-muted: #7f91a4;
+      --success: #4fae4e;
+      --warning: #f1a23a;
+      --danger: #e53935;
+      --border-color: #242f3d;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 540px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      text-align: center;
+    }
+
+    .logo-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: rgba(82, 136, 193, 0.15);
+      color: var(--accent);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .status-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding: 12px;
+      background: var(--bg-color);
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: var(--warning);
+      box-shadow: 0 0 10px var(--warning);
+      transition: all 0.3s ease;
+    }
+
+    .status-dot.online {
+      background-color: var(--success);
+      box-shadow: 0 0 12px var(--success);
+    }
+
+    .status-dot.offline {
+      background-color: var(--danger);
+      box-shadow: 0 0 12px var(--danger);
+    }
+
+    .status-text {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .url-box {
+      display: flex;
+      align-items: center;
+      background: #111922;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .url-text {
+      flex: 1;
+      font-family: monospace;
+      font-size: 13px;
+      color: var(--accent);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: left;
+    }
+
+    .btn-copy {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-copy:hover {
+      background: var(--accent-hover);
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+
+    .meta-item {
+      background: var(--bg-color);
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .meta-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .meta-value {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .api-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .api-link:hover {
+      text-decoration: underline;
+    }
+
+    .footer {
+      margin-top: 20px;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="logo-badge">Parallax Node Discovery</div>
+    <h1>Mobile Server Status</h1>
+    <p class="subtitle">Автоматическое обнаружение туннеля Termux (Pinggy)</p>
+
+    <div class="status-container">
+      <div id="statusDot" class="status-dot"></div>
+      <span id="statusLabel" class="status-text">Проверка статуса...</span>
+    </div>
+
+    <div class="url-box">
+      <span id="tunnelUrl" class="url-text">Загрузка адреса...</span>
+      <button class="btn-copy" onclick="copyUrl()">Копировать</button>
+    </div>
+
+    <div class="meta-grid">
+      <div class="meta-item">
+        <div class="meta-label">Пинг / Доступность</div>
+        <div id="pingValue" class="meta-value">-- ms</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Смена через (~55 мин)</div>
+        <div id="timerValue" class="meta-value">--:--</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Обновлено</div>
+        <div id="updatedValue" class="meta-value">--</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Протокол</div>
+        <div class="meta-value">WSS / HTTPS</div>
+      </div>
+    </div>
+
+    <div>
+      <a href="server.json" class="api-link" target="_blank">📄 Открыть сырой server.json для клиента</a>
+    </div>
+  </div>
+
+  <div class="footer">
+    Parallax Messenger Discovery &bull; Powered by Termux, Pinggy & GitHub Pages
+  </div>
+
+  <script>
+    let activeUrl = "";
+    let updatedAtMs = 0;
+
+    async function loadServerConfig() {
+      try {
+        // Cache busting (?t=...) предотвращает кэширование CDN GitHub Pages
+        const response = await fetch('server.json?t=' + Date.now(), { cache: 'no-store' });
+        if (!response.ok) throw new Error('Не удалось прочитать server.json');
+        
+        const data = await response.json();
+        activeUrl = data.url || "";
+        updatedAtMs = data.updated_at || Date.now();
+
+        document.getElementById('tunnelUrl').innerText = activeUrl || "URL не настроен";
+        
+        const dateObj = new Date(updatedAtMs);
+        document.getElementById('updatedValue').innerText = dateObj.toLocaleTimeString();
+
+        // Проверяем живой ли туннель через внешний ping
+        if (activeUrl) {
+          checkTunnelHealth(activeUrl);
+        } else {
+          setOffline('URL не найден');
+        }
+      } catch (err) {
+        console.error(err);
+        setOffline('Ошибка чтения конфигурации');
+      }
+    }
+
+    async function checkTunnelHealth(url) {
+      const startTime = performance.now();
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+        const res = await fetch(`${url}/health`, {
+          method: 'GET',
+          mode: 'cors',
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        const latency = Math.round(performance.now() - startTime);
+
+        if (res.ok) {
+          const data = await res.json();
+          setOnline(`${latency} ms`, data.uptime);
+        } else {
+          setOffline(`HTTP ${res.status}`);
+        }
+      } catch (e) {
+        // В случае CORS или смены туннеля
+        document.getElementById('statusDot').className = 'status-dot';
+        document.getElementById('statusLabel').innerText = 'Туннель обновляется или спит';
+        document.getElementById('pingValue').innerText = 'Таймаут';
+      }
+    }
+
+    function setOnline(latencyStr) {
+      document.getElementById('statusDot').className = 'status-dot online';
+      document.getElementById('statusLabel').innerText = 'Сервер в сети (Online)';
+      document.getElementById('statusLabel').style.color = '#4fae4e';
+      document.getElementById('pingValue').innerText = latencyStr;
+    }
+
+    function setOffline(reason) {
+      document.getElementById('statusDot').className = 'status-dot offline';
+      document.getElementById('statusLabel').innerText = `Офлайн (${reason})`;
+      document.getElementById('statusLabel').style.color = '#e53935';
+      document.getElementById('pingValue').innerText = '--';
+    }
+
+    function updateCountdown() {
+      if (!updatedAtMs) return;
+      const rotationInterval = 55 * 60 * 1000; // 55 минут
+      const nextRotation = updatedAtMs + rotationInterval;
+      const remaining = nextRotation - Date.now();
+
+      if (remaining <= 0) {
+        document.getElementById('timerValue').innerText = 'Сейчас сменяется';
+      } else {
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        document.getElementById('timerValue').innerText = `${mins}м ${secs < 10 ? '0' : ''}${secs}с`;
+      }
+    }
+
+    function copyUrl() {
+      if (!activeUrl) return;
+      navigator.clipboard.writeText(activeUrl).then(() => {
+        const btn = document.querySelector('.btn-copy');
+        btn.innerText = 'Скопировано!';
+        setTimeout(() => btn.innerText = 'Копировать', 2000);
+      });
+    }
+
+    // Запуск и регулярный опрос
+    loadServerConfig();
+    setInterval(loadServerConfig, 30000); // каждые 30 сек
+    setInterval(updateCountdown, 1000);
+  </script>
+</body>
+</html>
