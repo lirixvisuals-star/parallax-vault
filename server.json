@@ -1,6 +1,5 @@
 {
-  "url": "https://example-tunnel.a.pinggy.link",
-  "updated_at": 1727520000000,
-  "status": "online",
-  "version": "1.0.0"
+  "url": "https://test-tunnel.free.pinggy.net",
+  "updated_at": 123456789,
+  "status": "online"
 }
